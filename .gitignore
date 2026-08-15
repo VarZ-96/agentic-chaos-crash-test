@@ -1,0 +1,86 @@
+# =========================
+# Python & Bytecode
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# =========================
+# Virtual Environments
+# =========================
+env/
+venv/
+.env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# =========================
+# Environment Variables & Secrets
+# =========================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+chaos_secrets.yaml
+
+# =========================
+# Testing & Coverage
+# =========================
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# =========================
+# IDEs & Editors
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+.spyderproject
+.ropeproject
+
+# =========================
+# OS Generated Files
+# =========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# =========================
+# Docker
+# =========================
+.docker/
+docker-compose.override.yml
+
+# =========================
+# Project Specific (Logs & DB)
+# =========================
+logs/
+*.log
+*.sqlite3
+*.db
+
+# =========================
+# Linting & Type Checking
+# =========================
+.mypy_cache/
+.ruff_cache/
+
+# =========================
+# Build & Packaging
+# =========================
+build/
+dist/
+*.egg-info/
