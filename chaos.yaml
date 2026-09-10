@@ -7,24 +7,28 @@ target_agent:
 fuzzing_profiles:
   network_chaos:
     enabled: true
-    http_503_injection_rate: 0.10
-    http_500_injection_rate: 0.05
-    http_429_injection_rate: 0.05
-    latency_injection_rate: 0.25
-    latency_range_ms: [2000, 10000]
+    # Balanced Demo Values (~40% chance of an error, 40% chance of a short delay)
+    # Original Production Values: 0.10, 0.05, 0.05, 0.25 (2000-10000ms)
+    http_503_injection_rate: 0.15
+    http_500_injection_rate: 0.15
+    http_429_injection_rate: 0.15
+    latency_injection_rate: 0.40
+    latency_range_ms: [1000, 2500] 
 
   schema_mutilation:
     enabled: true
-    drop_field_rate: 0.15
-    type_confusion_rate: 0.10
-    null_injection_rate: 0.05
+    # Demo Values (High chance of JSON corruption when fetching real data)
+    drop_field_rate: 0.30
+    type_confusion_rate: 0.30
+    null_injection_rate: 0.30
     target_fields: []
 
   semantic_mirage:
     enabled: true
     target_tables: ["users"]
     temporal_anomaly_injection: true
-    corruption_rate: 1.0
+    # 50% chance of logical poisoning on valid data
+    corruption_rate: 0.50
     role_mutation_value: "admin"
 
   rbac_jailbreaker:
