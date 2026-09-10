@@ -2,58 +2,71 @@
 
 Here is your complete guide on what to say and how to demonstrate the project to your professor tomorrow. 
 
-## 1. What to Say: Project Status (Phase 1 & 2 Completed)
+## 1. What to Say: Project Status
 Tell your professor that **Phases 1 and 2 are 100% complete**. You have successfully built the core proxy and all the chaos injection strategies. Specifically, highlight these achievements:
 - **Asynchronous Reverse Proxy (Phase 1):** Built a high-performance, non-blocking proxy using FastAPI and `httpx` to intercept AI agent tool calls.
 - **Trace Logging Engine (Phase 1):** Implemented an asynchronous, append-only SQLite database logger that records every request/response without blocking the main event loop. Sensitive credentials are automatically redacted.
-- **Chaos Mutation Engines (Phase 2):** Implemented all 5 chaos strategies using the Strategy Design Pattern:
-  1. **Network Chaos:** Injects random latencies and HTTP 500/503/429 errors to test agent retry logic.
-  2. **Schema Mutilation:** Randomly drops fields or changes types to simulate malformed APIs.
-  3. **Token Trap:** Creates cyclic redirects to trap agents in infinite loops.
-  4. **Semantic Mirage:** Corrupts payloads (e.g., temporal anomalies) while returning a clean HTTP 200 OK to see if the agent catches logical errors.
-  5. **RBAC Jailbreak:** Detects and blocks unauthorized privilege escalation attempts (e.g., SQL injections trying to become 'admin').
+- **Chaos Mutation Engines (Phase 2):** Implemented all 5 chaos strategies using the Strategy Design Pattern.
 
-## 2. How to Demo Without a UI
-Since there is no UI, you will demonstrate the engine using your terminal. Below are the commands to run. I've provided both the PowerShell way (`Invoke-RestMethod`) and the standard `curl.exe` way (which shows the raw JSON output nicely).
+---
 
-### Step 1: Show the Engine is Alive
-Show the professor that the engine is running and has loaded the chaos profiles from `chaos.yaml`.
-**Run either of these commands:**
+## 2. The Live Demonstration
+Because there is no UI, you will demonstrate the engine using your terminal. 
+
+### Step 0: Ensure Config is Reloaded
+You have increased the injection rates in your `chaos.yaml` so the faults trigger reliably for the demo. Ensure the proxy has loaded this config:
 ```powershell
-# Using Native PowerShell
-Invoke-RestMethod -Uri http://127.0.0.1:8080/health -Method Get
+# Using PowerShell
+Invoke-RestMethod -Uri http://127.0.0.1:8080/v1/chaos/reload -Method Put
 
 # OR Using curl
-curl.exe -s http://127.0.0.1:8080/health
+curl.exe -X PUT http://127.0.0.1:8080/v1/chaos/reload
 ```
-**What to show:** Point out the JSON response confirming `"status": "ok"` and listing the 5 active strategies.
 
-### Step 2: Demonstrate the Proxy Interception
-Show how the engine intercepts requests. Any request sent to `http://127.0.0.1:8080/v1/...` is processed through the chaos engines and forwarded.
-**Run either of these commands:**
+### Demo 1: Network Chaos (Latency & HTTP Errors)
+Show how the engine injects 503, 500, and 429 errors randomly.
+**Run this a few times:**
 ```powershell
-# Using Native PowerShell
-Invoke-RestMethod -Uri http://127.0.0.1:8080/v1/some-agent-tool-endpoint -Method Get
-
-# OR Using curl (includes headers)
-curl.exe -X GET http://127.0.0.1:8080/v1/some-agent-tool-endpoint -i
+curl.exe -X GET http://127.0.0.1:8080/v1/some-endpoint -i
 ```
-**What to show:** Explain that depending on the `chaos.yaml` probability settings, this request might instantly fail with a `Too Many Requests` error (Network Chaos), or it might try to forward to the upstream server. *(Note: If the chaos engine decides to let the request pass through unharmed, you will see an `upstream unreachable` error because there isn't actually a target server running on port 9009 right now. Mention to your professor that this proves the proxy attempted the forward successfully!)*
+**What to say:** "Depending on our stochastic probabilities, this request either passes through, gets artificially delayed, or instantly fails with an HTTP error like a 429 Too Many Requests."
 
-### Step 3: Demonstrate Trace Logging
-Show that every intercepted request is being recorded in the local SQLite database for future analysis.
-**Run either of these commands:**
+### Demo 2: Schema Mutilation (JSON Corruption)
+Show how the engine can intercept a perfect JSON response from an upstream server and corrupt the schema. We use dynamic upstream routing to point it at a mock API (`jsonplaceholder`).
+**Run this command:**
 ```powershell
-# Using Native PowerShell (Output is truncated by default)
-Invoke-RestMethod -Uri http://127.0.0.1:8080/v1/traces -Method Get
+curl.exe -s -H "X-Chaos-Upstream: https://jsonplaceholder.typicode.com" http://127.0.0.1:8080/v1/users/1
+```
+**What to say:** "Here, the proxy fetches perfect user data from a mock upstream server. However, the schema mutilation strategy intercepts the response and randomly deletes fields or injects nulls before the AI agent receives it."
 
-# OR Using curl (Recommended! Shows the full raw JSON)
+### Demo 3: Semantic Mirage (Logical Poisoning)
+Show how the engine poisons valid data payloads logically, returning an HTTP 200 OK but with paradoxical data (like manipulating roles or timestamps) to see if the AI trusts it blindly.
+**Run this command:**
+```powershell
+curl.exe -s -H "X-Chaos-Upstream: https://jsonplaceholder.typicode.com" http://127.0.0.1:8080/v1/users/2
+```
+**What to say:** "Just like schema mutilation, this intercepts a valid response but instead injects logical paradoxes—like making `last_updated` happen before `created_at`. We return an HTTP 200, testing if the AI blindly trusts the data or actively validates it."
+
+### Demo 4: RBAC Jailbreaker (Security & Redaction)
+Show how the proxy acts as a security layer, blocking prohibited AI payloads and redacting sensitive data.
+**Run this command to trigger a block:**
+```powershell
+curl.exe -X POST http://127.0.0.1:8080/v1/some-endpoint -H "Content-Type: application/json" -d "{\"query\": \"UPDATE users SET user_role = 'admin'\"}"
+```
+**What to say:** "The proxy normalizes incoming payloads and checks against a list of prohibited operations. Here, it caught a simulated privilege escalation attack and blocked it entirely."
+
+### Demo 5: Token Trap (Cyclic Redirects)
+Show how the engine creates infinite loops to trap the agent. Look at your `chaos.yaml` under `trap_paths`, which specifies `/tools/service_a`.
+**Run this command:**
+```powershell
+curl.exe -X GET http://127.0.0.1:8080/v1/tools/service_a -i
+```
+**What to say:** "If an agent queries this specific path, the proxy returns a 307 Temporary Redirect pointing back to itself, essentially trapping the agent in an infinite loop to drain its token budget."
+
+### Final Step: Trace Logging
+Finally, show that every single one of those requests was recorded asynchronously.
+**Run this command:**
+```powershell
 curl.exe -s http://127.0.0.1:8080/v1/traces
 ```
-**What to show:** This will output the history of all the HTTP requests and responses that have passed through the proxy. Point out how headers and body payloads are captured, which will be used in Phase 3 for building the Directed Acyclic Graph (DAG).
-
-## 3. How to Tell if it's Working
-You know it's working perfectly when:
-1. The `/health` endpoint returns the 5 strategies.
-2. The `/v1/traces` endpoint returns the history of your requests.
-3. Sending requests to `/v1/anything` results in occasional random delays, HTTP errors, or `upstream unreachable` errors (which proves the Chaos Engines are actively mutating the traffic and the proxy is doing its job).
+**What to say:** "Every interaction we just did was logged asynchronously to a SQLite database. Sensitive headers like Authorization were redacted on the fly, and this data will be used in Phase 3 to generate the Execution DAG."
