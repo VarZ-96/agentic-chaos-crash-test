@@ -2,17 +2,30 @@ version: "1.0"
 target_agent:
   base_proxy_url: "http://localhost:8080/v1"
   max_allowed_token_budget: 15000
+  upstream_base_url: "http://127.0.0.1:9009"
 
 fuzzing_profiles:
   network_chaos:
     enabled: true
     http_503_injection_rate: 0.10
+    http_500_injection_rate: 0.05
+    http_429_injection_rate: 0.05
+    latency_injection_rate: 0.25
     latency_range_ms: [2000, 10000]
+
+  schema_mutilation:
+    enabled: true
+    drop_field_rate: 0.15
+    type_confusion_rate: 0.10
+    null_injection_rate: 0.05
+    target_fields: []
 
   semantic_mirage:
     enabled: true
     target_tables: ["users"]
     temporal_anomaly_injection: true
+    corruption_rate: 1.0
+    role_mutation_value: "admin"
 
   rbac_jailbreaker:
     enabled: true
@@ -22,6 +35,7 @@ fuzzing_profiles:
   token_trap:
     enabled: true
     max_cyclic_depth: 3
+    trap_paths: ["/tools/service_a", "/tools/service_b"]
 
 evaluation_metrics:
   fail_on_infinite_loop: true
