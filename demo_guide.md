@@ -17,10 +17,10 @@ Because there is no UI, you will demonstrate the engine using your terminal.
 You have increased the injection rates in your `chaos.yaml` so the faults trigger reliably for the demo. Ensure the proxy has loaded this config:
 ```powershell
 # Using PowerShell
-Invoke-RestMethod -Uri http://127.0.0.1:8080/v1/chaos/reload -Method Put
+Invoke-RestMethod -Uri http://127.0.0.1:8080/v1/chaos/reload -Method Post
 
 # OR Using curl
-curl.exe -X PUT http://127.0.0.1:8080/v1/chaos/reload
+curl.exe -X POST http://127.0.0.1:8080/v1/chaos/reload
 ```
 
 ### Demo 1: Network Chaos (Latency & HTTP Errors)
